@@ -26,13 +26,13 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
-train_df = pd.read_csv("Bootcamp_11/miuul_proje/dataset/train.csv")
-test_df = pd.read_csv("Bootcamp_11/miuul_proje/dataset/test.csv")
+train_df = pd.read_csv("dataset/train.csv")
+test_df = pd.read_csv("dataset/test.csv")
 #saleprice test df te yok
 train_df.info()
 test_df.info()
 
-df_ = train_df.merge(test_df, how='left')
+df_ = pd.concat([train_df, test_df])
 df = df_.copy()
 df.info()
 
@@ -99,11 +99,11 @@ def cat_summary(dataframe, col_name, plot=False):
 
     if plot:
         sns.countplot(x=dataframe[col_name], data=dataframe)
-        plt.show()
+        plt.show(block=True)
 
 
 for col in cat_cols:
-    cat_summary(df, col)
+    cat_summary(df, col, True)
 
 def num_summary(dataframe, numerical_col, plot=False):
     quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
@@ -118,7 +118,7 @@ def num_summary(dataframe, numerical_col, plot=False):
     print("#####################################")
 
 for col in num_cols:
-    num_summary(df, col, True)
+    num_summary(df, col, False)
 
 
 def target_summary_with_cat(dataframe, target, categorical_col):
@@ -127,12 +127,13 @@ def target_summary_with_cat(dataframe, target, categorical_col):
 
 for col in cat_cols:
     target_summary_with_cat(df, "SalePrice", col)
+    #görselleştir
 
 
 df["SalePrice"].hist(bins=100)
 plt.show(block=True)
 
-np.log1p(df['SalePrice']).hist(bins=50)
+np.log1p(df['SalePrice']).hist(bins=100)
 plt.show(block=True)
 
 corr = df[num_cols].corr()
