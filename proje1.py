@@ -28,8 +28,8 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 ##   EXPLORE DATA   ##
 
-train_df = pd.read_csv("Bootcamp_11/miuul_proje/dataset/train.csv")
-test_df = pd.read_csv("Bootcamp_11/miuul_proje/dataset/test.csv")
+train_df = pd.read_csv("dataset/train.csv")
+test_df = pd.read_csv("dataset/test.csv")
 #saleprice test df te yok
 train_df.info()
 test_df.info()
