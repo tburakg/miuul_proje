@@ -243,15 +243,20 @@ for col in nmiss_high_columns:
 # LotFrontage * TotalBsmtSF
 # LotFrontage * 2ndFlrSF
 # LotFrontage * MasVnrArea
+
 # MasVnrArea * 2ndFlrSF
+
 # MSSubClass * TotalBsmtSF
 # MSSubClass * 2ndFlrSF
 # MSSubClass * GarageArea
+
 # GarageArea * 2ndFlrSF
+
 # GrLivArea * GarageArea
 # GrLivArea * TotalBsmtSF
 # GrLivArea * 2ndFlrSF
 # GrLivArea * MasVnrArea
+
 # OpenPorchSF * GrLivArea
 # OpenPorchSF * GarageArea
 # OpenPorchSF * MSSubClass
