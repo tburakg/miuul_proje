@@ -26,8 +26,10 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
-train_df = pd.read_csv("dataset/train.csv")
-test_df = pd.read_csv("dataset/test.csv")
+##   EXPLORE DATA   ##
+
+train_df = pd.read_csv("Bootcamp_11/miuul_proje/dataset/train.csv")
+test_df = pd.read_csv("Bootcamp_11/miuul_proje/dataset/test.csv")
 #saleprice test df te yok
 train_df.info()
 test_df.info()
@@ -159,7 +161,103 @@ def high_correlated_cols(dataframe, plot=False, corr_th=0.70):
 
 high_correlated_cols(df, plot=True)
 
-### Feature Engineering ###
+## preprocess and feature engineering
+
+def outlier_thresholds(dataframe, col_name, q1 = 0.05, q3=0.95):
+    quartile1 = dataframe[col_name].quantile(q1)
+    quartile3 = dataframe[col_name].quantile(q3)
+    interquentile_range = quartile3 - quartile1
+    up_limit = quartile3 + 1.5 * interquentile_range
+    low_limit = quartile1 - 1.5 * interquentile_range
+    return low_limit, up_limit
+
+def check_outlier(dataframe, col_name):
+    low_limit, up_limit = outlier_thresholds(dataframe, col_name)
+    if dataframe[(dataframe[col_name]< low_limit) | (dataframe[col_name] > up_limit)].any(axis=None):
+        return True
+
+    else:
+        return False
+
+
+for col in num_cols:
+    print(col, check_outlier(df, col))
+
+def replace_with_thresholds(dataframe, variable, q1=0.05, q3=0.95):
+    low_limit, up_limit = outlier_thresholds(dataframe, variable, q1=0.05, q3=0.95)
+    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
+    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+
+
+for col in num_cols:
+    print(col, replace_with_thresholds(df, col))
+
+for col in num_cols:
+    print(col, check_outlier(df, col))
+
+df.isnull().sum().sort_values(ascending=False)
+
+def missing_values_table(dataframe, na_name=False):
+    na_columns = [col for col in dataframe.columns if dataframe[col].isnull().sum() > 0]
+    n_miss = dataframe[na_columns].isnull().sum().sort_values(ascending=False)
+    ratio = (dataframe[na_columns].isnull().sum() / dataframe.shape[0] * 100).sort_values(ascending=False)
+    missing_df = pd.concat([n_miss, np.round(ratio, 2)], axis=1, keys=['n_miss', 'ratio'])
+    print(missing_df, end="\n")
+
+    if na_name:
+        return na_columns, n_miss
+
+
+no_cols = ["Alley","BsmtQual","BsmtCond","BsmtExposure","BsmtFinType1","BsmtFinType2","FireplaceQu",
+           "GarageType","GarageFinish","GarageQual","GarageCond","PoolQC","Fence","MiscFeature"]
+
+for col in no_cols:
+    df[col].fillna("NO",inplace=True)
+
+
+
+df.head()
+df.isnull().sum().sort_values(ascending=False)
+na_columns , nmiss= missing_values_table(df, True)
+
+na_columns = [col for col in na_columns if col not in ["SalePrice"]]
+nmiss_low_perc = nmiss[nmiss < 30]
+
+nmiss_low_columns = [col for col in nmiss_low_perc.index]
+nmiss_high_columns = [col for col in na_columns if col not in nmiss_low_columns]
+
+for col in nmiss_low_columns:
+    if df[col].dtype == 'O':
+        df[col].fillna(df[col].mode()[0], inplace = True)
+    else:
+        df[col].fillna(df[col].mode()[0], inplace = True)
+
+## ikisine de aynı işlem yapıldı ama ilerede özelleştirilebilir
+for col in nmiss_high_columns:
+    if df[col].dtype == 'O':
+        df[col].fillna(df[col].mode()[0], inplace = True)
+    else:
+        df[col].fillna(df[col].mode()[0], inplace = True)
+
+
+# LotFrontage * TotalBsmtSF
+# LotFrontage * 2ndFlrSF
+# LotFrontage * MasVnrArea
+# MasVnrArea * 2ndFlrSF
+# MSSubClass * TotalBsmtSF
+# MSSubClass * 2ndFlrSF
+# MSSubClass * GarageArea
+# GarageArea * 2ndFlrSF
+# GrLivArea * GarageArea
+# GrLivArea * TotalBsmtSF
+# GrLivArea * 2ndFlrSF
+# GrLivArea * MasVnrArea
+# OpenPorchSF * GrLivArea
+# OpenPorchSF * GarageArea
+# OpenPorchSF * MSSubClass
+# OpenPorchSF * LotFrontage
+# OpenPorchSF * TotalBsmtSF
+
 
 
 
