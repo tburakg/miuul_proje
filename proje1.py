@@ -244,6 +244,11 @@ for col in nmiss_high_columns:
 # LotFrontage * 2ndFlrSF
 # LotFrontage * MasVnrArea
 
+
+
+
+
+
 # MasVnrArea * 2ndFlrSF
 
 # MSSubClass * TotalBsmtSF
