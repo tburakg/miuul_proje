@@ -12,10 +12,10 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
-from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split, cross_val_score,GridSearchCV
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder, StandardScaler
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter("ignore", category=ConvergenceWarning)
@@ -240,29 +240,121 @@ for col in nmiss_high_columns:
         df[col].fillna(df[col].mode()[0], inplace = True)
 
 
+def rare_analyser(dataframe, target, cat_cols):
+    for col in cat_cols:
+        print(col, ":", len(dataframe[col].value_counts()))
+        print(pd.DataFrame({"COUNT": dataframe[col].value_counts(),
+                            "RATIO": dataframe[col].value_counts() / len(dataframe),
+                            "TARGET_MEAN": dataframe.groupby(col)[target].mean()}), end="\n\n\n")
+
+for col in df.columns:
+    rare_analyser(df, "SalePrice", cat_cols)
+
+
+def rare_encoder(dataframe, rare_perc):
+    temp_df = dataframe.copy()
+
+    rare_columns = [col for col in temp_df.columns if temp_df[col].dtypes == 'O'
+                    and (temp_df[col].value_counts() / len(temp_df) < rare_perc).any(axis=None)]
+
+    for var in rare_columns:
+        tmp = temp_df[var].value_counts() / len(temp_df)
+        rare_labels = tmp[tmp < rare_perc].index
+        temp_df[var] = np.where(temp_df[var].isin(rare_labels), 'Rare', temp_df[var])
+
+    return temp_df
+
+
+df_with_rare = rare_encoder(df,0.02)
+df_with_rare.head()
+
+for col in df.columns:
+    rare_analyser(df_with_rare, "SalePrice", cat_cols)
+
+df = df_with_rare.copy()
+
+
 # LotFrontage * TotalBsmtSF
+df["NEW_STREET_BASE"] = df["LotFrontage"] * df["TotalBsmtSF"]
+
 # LotFrontage * 2ndFlrSF
+df["NEW_STREET_2ND_FLOOR"] = df["LotFrontage"] * df["2ndFlrSF"]
+
 # LotFrontage * MasVnrArea
+df["NEW_STREET_VENEER"] = df["LotFrontage"] * df["MasVnrArea"]
 
 # MasVnrArea * 2ndFlrSF
+df["NEW_VENEER_2ND_FLOOR"] = df["MasVnrArea"] * df["2ndFlrSF"]
+
 
 # MSSubClass * TotalBsmtSF
+df["NEW_STREET_BASE"] = df["MSSubClass"] * df["TotalBsmtSF"]
+
 # MSSubClass * 2ndFlrSF
+df["NEW_TYPE_2ND_FLOOR"] = df["MSSubClass"] * df["2ndFlrSF"]
+
 # MSSubClass * GarageArea
+df["NEW_TYPE_2ND_GARAGE"] = df["MSSubClass"] * df["GarageArea"]
 
 # GarageArea * 2ndFlrSF
+df["NEW_GARAGE_2ND_FLOOR"] = df["GarageArea"] * df["2ndFlrSF"]
 
 # GrLivArea * GarageArea
+df["NEW_LIVING_AREA_GARAGE"] = df["GrLivArea"] * df["GarageArea"]
+
 # GrLivArea * TotalBsmtSF
+df["NEW_LIVING_AREA_BASE"] = df["GrLivArea"] * df["TotalBsmtSF"]
+
 # GrLivArea * 2ndFlrSF
+df["NEW_LIVING_AREA_2ND_FLOOR"] = df["GrLivArea"] * df["2ndFlrSF"]
+
 # GrLivArea * MasVnrArea
+df["NEW_LIVING_AREA_VENEER"] = df["GrLivArea"] * df["MasVnrArea"]
 
 # OpenPorchSF * GrLivArea
+df["NEW_PORCH_LIVING_AREA"] = df["OpenPorchSF"] * df["GrLivArea"]
+
 # OpenPorchSF * GarageArea
+df["NEW_PORCH_GARAGE"] = df["OpenPorchSF"] * df["GarageArea"]
+
 # OpenPorchSF * MSSubClass
+df["NEW_PORCH_TYPE"] = df["OpenPorchSF"] * df["MSSubClass"]
+
 # OpenPorchSF * LotFrontage
+df["NEW_PORCH_NEW_STREET"] = df["OpenPorchSF"] * df["LotFrontage"]
+
 # OpenPorchSF * TotalBsmtSF
+df["NEW_PORCH_BASE"] = df["OpenPorchSF"] * df["LotFrontage"]
+
+cat_cols, cat_but_car, num_cols = grab_col_names(df)
+
+drop_list = ["Street", "Alley", "LandContour", "Utilities", "LandSlope","Heating", "PoolQC", "MiscFeature","Neighborhood"]
+df.drop(drop_list, axis=1, inplace=True)
+
+cat_cols, cat_but_car, num_cols = grab_col_names(df)
+
+def label_encoder(dataframe, binary_col):
+    labelencoder = LabelEncoder()
+    dataframe[binary_col] = labelencoder.fit_transform(dataframe[binary_col])
+    return dataframe
+
+binary_cols = [col for col in df.columns if df[col].dtypes == "O" and len(df[col].unique()) == 2]
+
+for col in binary_cols:
+    label_encoder(df, col)
 
 
+def one_hot_encoder(dataframe, categorical_cols, drop_first=False):
+    dataframe = pd.get_dummies(dataframe, columns=categorical_cols, drop_first=drop_first)
+    return dataframe
 
+df = one_hot_encoder(df, cat_cols, drop_first=True)
 
+def min_max_scaler(dataframe, num_col):
+    scaler = MinMaxScaler()
+
+    dataframe[num_col] = scaler.fit_transform(dataframe[[num_col]])
+    return dataframe
+
+for col in num_cols:
+    min_max_scaler(df, col)
