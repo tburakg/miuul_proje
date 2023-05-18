@@ -274,6 +274,14 @@ for col in df.columns:
 df = df_with_rare.copy()
 
 
+ngb =df.groupby("Neighborhood").SalePrice.mean().reset_index()
+ngb["CLUSTER_NEIGHBORHOOD"] = pd.cut(df.groupby("Neighborhood").SalePrice.mean().values, 4, labels = range(1,5))
+ngb.groupby("CLUSTER_NEIGHBORHOOD").SalePrice.agg({"count", "mean", "max"})
+df = pd.merge(df, ngb.drop(["SalePrice"], axis = 1), how = "left", on = "Neighborhood")
+df.groupby("CLUSTER_NEIGHBORHOOD").SalePrice.agg({"count", "median", "mean", "max", "std"})
+del ngb
+
+
 # LotFrontage * TotalBsmtSF
 df["NEW_STREET_BASE"] = df["LotFrontage"] * df["TotalBsmtSF"]
 
@@ -326,6 +334,64 @@ df["NEW_PORCH_NEW_STREET"] = df["OpenPorchSF"] * df["LotFrontage"]
 # OpenPorchSF * TotalBsmtSF
 df["NEW_PORCH_BASE"] = df["OpenPorchSF"] * df["LotFrontage"]
 
+
+df["NEW_LotRatio"] = df.GrLivArea / df.LotArea
+
+df["NEW_RatioArea"] = df.NEW_TotalHouseArea / df.LotArea
+
+df["NEW_GarageLotRatio"] = df.GarageArea / df.LotArea
+
+df["NEW_PorchArea"] = df.OpenPorchSF + df.EnclosedPorch + df.ScreenPorch + df["3SsnPorch"] + df.WoodDeckSF
+
+
+
+df["NEW_DifArea"] = (df.LotArea - df["1stFlrSF"] - df.GarageArea - df.NEW_PorchArea - df.WoodDeckSF)
+
+
+df["NEW_OverallGrade"] = df["OverallQual"] * df["OverallCond"]
+
+
+df["NEW_Restoration"] = df.YearRemodAdd - df.YearBuilt
+
+df["NEW_HouseAge"] = df.YrSold - df.YearBuilt
+
+df["NEW_RestorationAge"] = df.YrSold - df.YearRemodAdd
+
+df["NEW_GarageAge"] = df.GarageYrBlt - df.YearBuilt
+
+df["NEW_GarageRestorationAge"] = np.abs(df.GarageYrBlt - df.YearRemodAdd)
+
+df["NEW_GarageSold"] = df.YrSold - df.GarageYrBlt
+
+df["NEW_MasVnrRatio"] = df.MasVnrArea / df.NEW_TotalHouseArea
+
+df["TOTALBATH"] = df.BsmtFullBath + df.BsmtHalfBath*0.5 + df.FullBath + df.HalfBath*0.5
+df["TOTALFULLBATH"] = df.BsmtFullBath + df.FullBath
+df["TOTALHALFBATH"] = df.BsmtHalfBath + df.HalfBath
+df["ROOMABVGR"] = df.BedroomAbvGr + df.KitchenAbvGr
+df["RATIO_ROOMABVGR"] = df["ROOMABVGR"] / df.TotRmsAbvGrd  # bedroom ve kitchen'ın evin içindeki oranı
+
+df["REMODELED"] = np.where(df.YearBuilt == df.YearRemodAdd, 0 ,1)   # ev restore edildimi
+df["ISNEWHOUSE"] = np.where(df.YearBuilt == df.YrSold, 1 ,0)   # ev yeni mi
+
+df['TOTAL_FLRSF'] = df['1stFlrSF'] + df['2ndFlrSF'] # evin 1 ve ikici katı toplam metrekaresi
+df['FLOOR'] = np.where((df['2ndFlrSF'] < 1), 1,2)  # evin ikinci katı var mı ?
+
+df['TOTAL_HOUSE_AREA'] = df.TOTAL_FLRSF + df.TotalBsmtSF
+
+df["NEW_TotalFlrSF"] = df["1stFlrSF"] + df["2ndFlrSF"]
+
+df["NEW_TotalBsmtFin"] = df.BsmtFinSF1 + df.BsmtFinSF2
+
+
+
+df["NEW_TotalHouseArea"] = df.NEW_TotalFlrSF + df.TotalBsmtSF
+
+df["NEW_TotalSqFeet"] = df.GrLivArea + df.TotalBsmtSF
+
+
+df.drop(["MoSold", "YrSold"],axis = 1, inplace = True)  # bu değişkenlere gerek kalmadığı için siliyorum.
+
 cat_cols, cat_but_car, num_cols = grab_col_names(df)
 
 drop_list = ["Street", "Alley", "LandContour", "Utilities", "LandSlope","Heating", "PoolQC", "MiscFeature","Neighborhood"]
@@ -358,3 +424,5 @@ def min_max_scaler(dataframe, num_col):
 
 for col in num_cols:
     min_max_scaler(df, col)
+
+len(df.columns)
