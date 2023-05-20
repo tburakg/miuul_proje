@@ -18,10 +18,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split, cross_val_score,GridSearchCV
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
-from catboost import CatBoostClassifier
 from sklearn.model_selection import GridSearchCV, cross_validate, RandomizedSearchCV, validation_curve
+from sklearn import metrics
 
 warnings.simplefilter(action='ignore', category=Warning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -32,13 +30,11 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
-##   EXPLORE DATA   ##
 
 train_df = pd.read_csv("dataset/train.csv")
 test_df = pd.read_csv("dataset/test.csv")
 
 train_df["SalePrice"]
-#saleprice test df te yok
 train_df.info()
 test_df.info()
 
@@ -46,16 +42,6 @@ df_ = pd.concat([train_df, test_df])
 df = df_.copy()
 df.info()
 
-# hafta 8 case ini incele miuul çözüm olan
-# uçtan uca ml ek ders ve aykırı gözlem ek ders izle
-# feature engineering kısmına kadar olan bölümlerde farklı görselleştirmeler kullan
-
-
-# 1. Genel Resim
-# 2. Kategorik Değişken Analizi (Analysis of Categorical Variables)
-# 3. Sayısal Değişken Analizi (Analysis of Numerical Variables)
-# 4. Hedef Değişken Analizi (Analysis of Target Variable)
-# 5. Korelasyon Analizi (Analysis of Correlation)
 
 def check_df(dataframe):
     print("##################### Shape #####################")
@@ -103,74 +89,6 @@ def grab_col_names(dataframe, cat_th=10, car_th=20):
 
 cat_cols, cat_but_car, num_cols = grab_col_names(df)
 #
-# def cat_summary(dataframe, col_name, plot=False):
-#     print(pd.DataFrame({col_name: dataframe[col_name].value_counts(),
-#                         "Ratio": 100 * dataframe[col_name].value_counts() / len(dataframe)}))
-#
-#     if plot:
-#         sns.countplot(x=dataframe[col_name], data=dataframe)
-#         plt.show(block=True)
-#
-#
-# for col in cat_cols:
-#     cat_summary(df, col, True)
-#
-# def num_summary(dataframe, numerical_col, plot=False):
-#     quantiles = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99]
-#     print(dataframe[numerical_col].describe(quantiles).T)
-#
-#     if plot:
-#         dataframe[numerical_col].hist(bins=50)
-#         plt.xlabel(numerical_col)
-#         plt.title(numerical_col)
-#         plt.show(block=True)
-#
-#     print("#####################################")
-#
-# for col in num_cols:
-#     num_summary(df, col, False)
-#
-#
-# def target_summary_with_cat(dataframe, target, categorical_col):
-#     print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean()}), end="\n\n\n")
-#
-#
-# for col in cat_cols:
-#     target_summary_with_cat(df, "SalePrice", col)
-#     #görselleştir
-#
-#
-# df["SalePrice"].hist(bins=100)
-# plt.show(block=True)
-#
-# np.log1p(df['SalePrice']).hist(bins=100)
-# plt.show(block=True)
-#
-# corr = df[num_cols].corr()
-#
-# sns.set(rc={'figure.figsize': (12, 12)})
-# sns.heatmap(corr, cmap="RdBu")
-# plt.show(block=True)
-
-
-#
-# def high_correlated_cols(dataframe, plot=False, corr_th=0.70):
-#     corr = dataframe.corr()
-#     cor_matrix = corr.abs()
-#     upper_triangle_matrix = cor_matrix.where(np.triu(np.ones(cor_matrix.shape), k=1).astype(np.bool))
-#     drop_list = [col for col in upper_triangle_matrix.columns if any(upper_triangle_matrix[col] > corr_th)]
-#     if plot:
-#         import seaborn as sns
-#         import matplotlib.pyplot as plt
-#         sns.set(rc={'figure.figsize': (15, 15)})
-#         sns.heatmap(corr, cmap="RdBu")
-#         plt.show(block=True)
-#     return drop_list
-#
-# high_correlated_cols(df, plot=True)
-
-## preprocess and feature engineering
-
 def outlier_thresholds(dataframe, col_name, q1 = 0.05, q3=0.95):
     quartile1 = dataframe[col_name].quantile(q1)
     quartile3 = dataframe[col_name].quantile(q3)
@@ -179,17 +97,6 @@ def outlier_thresholds(dataframe, col_name, q1 = 0.05, q3=0.95):
     low_limit = quartile1 - 1.5 * interquentile_range
     return low_limit, up_limit
 
-# def check_outlier(dataframe, col_name):
-#     low_limit, up_limit = outlier_thresholds(dataframe, col_name)
-#     if dataframe[(dataframe[col_name]< low_limit) | (dataframe[col_name] > up_limit)].any(axis=None):
-#         return True
-#
-#     else:
-#         return False
-#
-#
-# for col in num_cols:
-#     print(col, check_outlier(df, col))
 
 def replace_with_thresholds(dataframe, variable, q1=0.05, q3=0.95):
     low_limit, up_limit = outlier_thresholds(dataframe, variable, q1=0.05, q3=0.95)
@@ -200,11 +107,7 @@ def replace_with_thresholds(dataframe, variable, q1=0.05, q3=0.95):
 for col in num_cols:
     if col != "SalePrice":
         replace_with_thresholds(df,col)
-#
-# for col in num_cols:
-#     print(col, check_outlier(df, col))
 
-# df.isnull().sum().sort_values(ascending=False)
 
 def missing_values_table(dataframe, na_name=False):
     na_columns = [col for col in dataframe.columns if dataframe[col].isnull().sum() > 0]
@@ -236,13 +139,10 @@ def quick_missing_imp(data, num_method="median", cat_length=20, target="SalePric
     print("# BEFORE")
     print(data[variables_with_na].isnull().sum(), "\n\n")  # Uygulama öncesi değişkenlerin eksik değerlerinin sayısı
 
-    # değişken object ve sınıf sayısı cat_lengthe eşit veya altındaysa boş değerleri mode ile doldur
     data = data.apply(lambda x: x.fillna(x.mode()[0]) if (x.dtype == "O" and len(x.unique()) <= cat_length) else x, axis=0)
 
-    # num_method mean ise tipi object olmayan değişkenlerin boş değerleri ortalama ile dolduruluyor
     if num_method == "mean":
         data = data.apply(lambda x: x.fillna(x.mean()) if x.dtype != "O" else x, axis=0)
-    # num_method median ise tipi object olmayan değişkenlerin boş değerleri ortalama ile dolduruluyor
     elif num_method == "median":
         data = data.apply(lambda x: x.fillna(x.median()) if x.dtype != "O" else x, axis=0)
 
@@ -255,17 +155,6 @@ def quick_missing_imp(data, num_method="median", cat_length=20, target="SalePric
     return data
 
 df = quick_missing_imp(df, num_method="median", cat_length=17)
-
-# def rare_analyser(dataframe, target, cat_cols):
-#     for col in cat_cols:
-#         print(col, ":", len(dataframe[col].value_counts()))
-#         print(pd.DataFrame({"COUNT": dataframe[col].value_counts(),
-#                             "RATIO": dataframe[col].value_counts() / len(dataframe),
-#                             "TARGET_MEAN": dataframe.groupby(col)[target].mean()}), end="\n\n\n")
-#
-# for col in df.columns:
-#     rare_analyser(df, "SalePrice", cat_cols)
-
 
 def rare_encoder(dataframe, rare_perc):
     temp_df = dataframe.copy()
@@ -283,9 +172,6 @@ def rare_encoder(dataframe, rare_perc):
 
 df_with_rare = rare_encoder(df,0.02)
 df_with_rare.head()
-
-# for col in df.columns:
-#     rare_analyser(df_with_rare, "SalePrice", cat_cols)
 
 df = df_with_rare.copy()
 
@@ -377,8 +263,6 @@ for col in num_cols:
 
 len(df.columns)
 
-
-
 train_df = df[df['SalePrice'].notnull()]
 test_df = df[df['SalePrice'].isnull()]
 
@@ -387,56 +271,32 @@ X = train_df.drop(["Id", "SalePrice"], axis=1)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=17)
 
-# models = [('LR', LinearRegression()),
-#           #("Ridge", Ridge()),
-#           #("Lasso", Lasso()),
-#           #("ElasticNet", ElasticNet()),
-#           ('KNN', KNeighborsRegressor()),
-#           ('CART', DecisionTreeRegressor()),
-#           ('RF', RandomForestRegressor()),
-#           #('SVR', SVR()),
-#           ('GBM', GradientBoostingRegressor()),
-#           ("XGBoost", XGBRegressor(objective='reg:squarederror')),
-#           ("LightGBM", LGBMRegressor())]
-#           # ("CatBoost", CatBoostRegressor(verbose=False))]
-#
-# for name, regressor in models:
-#     rmse = np.mean(np.sqrt(-cross_val_score(regressor, X, y, cv=5, scoring="neg_mean_squared_error")))
-#     print(f"RMSE: {round(rmse, 4)} ({name}) ")
+model_lgb = LGBMRegressor(objective='regression',num_leaves=5,
+                              learning_rate=0.1, n_estimators=2000,
+                              max_bin = 55, bagging_fraction = 0.8,
+                              bagging_freq = 5, feature_fraction = 0.2319,
+                              feature_fraction_seed=9, bagging_seed=9,
+                              min_data_in_leaf =6, min_sum_hessian_in_leaf = 11)
 
-# RMSE: 63372.725 (LR)
-# RMSE: 42740.5492 (KNN)
-# RMSE: 41869.2228 (CART)
-# RMSE: 28594.8214 (RF)
-# RMSE: 25994.5967 (GBM)
-# RMSE: 27985.414 (XGBoost)
-# RMSE: 28031.6646 (LightGBM)
+model_lgb.fit(X_train,y_train)
+
+lgb_pred = model_lgb.predict(X_test)
 
 
-# hiperparametre optimizasyonlarını gerçekleştiriniz.
+print('MAE:', metrics.mean_absolute_error(y_test, lgb_pred))
+print('MSE:', metrics.mean_squared_error(y_test, lgb_pred))
+print('RMSE:', np.sqrt(metrics.mean_squared_error(y_test, lgb_pred)))
 
-lgbm_model = LGBMRegressor(random_state=46)
-
-
-lgbm_params = {"learning_rate": [0.01, 0.05, 0.08],
-               "n_estimators": [1100,2000],
-               "colsample_bytree": [0.01, 0.1, 0.2]}
-
-
-
-lgbm_best_grid = GridSearchCV(lgbm_model, lgbm_params, cv=5, n_jobs=-1, verbose=True).fit(X, y)
-
-flgbm_final = lgbm_model.set_params(**lgbm_best_grid.best_params_, random_state=17).fit(X, y)
-
-test_pred = np.expm1(flgbm_final.predict(test_df.drop(["Id","SalePrice"], axis = 1), num_iteration=flgbm_final.best_iteration_))
-
-test_df["SalePrice"] = test_pred
-test_df.to_csv("results12.csv", columns=["Id", "SalePrice"], index=False)
+plt.figure(figsize=(15,8))
+plt.scatter(y_test,lgb_pred, c='orange')
+plt.xlabel('Y Test')
+plt.ylabel('Predicted Y')
+plt.show(block = True)
 
 
-rmse = np.mean(np.sqrt(-cross_val_score(flgbm_final, X, y, cv=5, scoring="neg_mean_squared_error")))
+pd.DataFrame({"act": y_test, "pred": lgb_pred})
 
-# feature importance
+
 def plot_importance(model, features, num=len(X), save=False):
 
     feature_imp = pd.DataFrame({"Value": model.feature_importances_, "Feature": features.columns})
@@ -450,22 +310,4 @@ def plot_importance(model, features, num=len(X), save=False):
         plt.savefig("importances.png")
 
 
-plot_importance(flgbm_final, X, 10)
-
-
-
-model = LGBMRegressor()
-model.fit(X, y)
-predictions = model.predict(test_df.drop(["Id","SalePrice"], axis=1))
-
-dictionary = {"Id":test_df.index, "SalePrice":predictions}
-dfSubmission = pd.DataFrame(dictionary)
-dfSubmission.to_csv("housePricePredictions.csv", index=False)
-
-
-y_pred3 = model.predict(X_test)
-print(model.score(X_test, y_test))
-
-compare = pd.DataFrame({'actual': y_test.values.ravel(), 'predicted': y_pred3})
-compare
-
+plot_importance(model_lgb, X, 40)
