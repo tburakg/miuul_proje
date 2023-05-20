@@ -296,6 +296,9 @@ plt.show(block = True)
 
 pd.DataFrame({"act": y_test, "pred": lgb_pred})
 
+dictionary = {"id": y_test.index,"act":y_test*100000, "SalePrice":lgb_pred*100000}
+dfSubmission = pd.DataFrame(dictionary)
+dfSubmission.to_csv("housePricePredictions2.csv", index=False)
 
 def plot_importance(model, features, num=len(X), save=False):
 
@@ -311,3 +314,5 @@ def plot_importance(model, features, num=len(X), save=False):
 
 
 plot_importance(model_lgb, X, 40)
+
+
