@@ -4,21 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
-from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.svm import SVR
-from sklearn.tree import DecisionTreeRegressor
-from xgboost import XGBRegressor
-from sklearn.metrics import mean_squared_error
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split, cross_val_score,GridSearchCV
-from sklearn.preprocessing import MinMaxScaler, LabelEncoder, StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV, cross_validate, RandomizedSearchCV, validation_curve
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn import metrics
 
 warnings.simplefilter(action='ignore', category=Warning)
@@ -26,7 +16,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter("ignore", category=ConvergenceWarning)
 
 pd.set_option('display.max_columns', None)
-#pd.set_option('display.max_rows', None)
 pd.set_option('display.width', None)
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
@@ -89,6 +78,9 @@ def grab_col_names(dataframe, cat_th=10, car_th=20):
 
 cat_cols, cat_but_car, num_cols = grab_col_names(df)
 #
+
+
+
 def outlier_thresholds(dataframe, col_name, q1 = 0.05, q3=0.95):
     quartile1 = dataframe[col_name].quantile(q1)
     quartile3 = dataframe[col_name].quantile(q3)
@@ -97,7 +89,7 @@ def outlier_thresholds(dataframe, col_name, q1 = 0.05, q3=0.95):
     low_limit = quartile1 - 1.5 * interquentile_range
     return low_limit, up_limit
 
-
+df.loc[(df["Fireplaces"]  > 1), "Fireplaces"].sort_values()
 def replace_with_thresholds(dataframe, variable, q1=0.05, q3=0.95):
     low_limit, up_limit = outlier_thresholds(dataframe, variable, q1=0.05, q3=0.95)
     dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
@@ -120,6 +112,21 @@ def missing_values_table(dataframe, na_name=False):
         return na_columns, n_miss
 
 missing_values_table(df)
+
+Isnull = df.isnull().sum() / len(df) * 100
+Isnull = Isnull[Isnull > 0]
+Isnull.sort_values(inplace = True, ascending = False)
+Isnull
+Isnull = Isnull.to_frame()
+Isnull.columns = ['count']
+Isnull.index.names = ['İsimler']
+Isnull['Name'] = Isnull.index
+
+plt.figure(figsize = (15, 9))
+sns.set(style = 'whitegrid')
+sns.barplot(x = 'Name', y = 'count', data = Isnull)
+plt.xticks(rotation = 90)
+plt.show(block = True)
 
 
 no_cols = ["Alley","BsmtQual","BsmtCond","BsmtExposure","BsmtFinType1","BsmtFinType2","FireplaceQu",
